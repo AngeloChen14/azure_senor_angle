@@ -1,0 +1,202 @@
+<!-- 
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License.
+-->
+<launch>
+
+  <arg name="depth_enabled"           default="true" />           <!-- Enable or disable the depth camera -->
+  <arg name="depth_mode"              default="NFOV_UNBINNED" />  <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
+  <arg name="color_enabled"           default="true" />           <!-- Enable or disable the color camera -->
+  <arg name="color_format"            default="bgra" />           <!-- The format of RGB camera. Valid options: bgra, jpeg -->
+  <arg name="color_resolution"        default="720P" />          <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
+  <arg name="fps"                     default="30" />              <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
+  <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+  <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+  <arg name="point_cloud_in_depth_frame" default="false" />        <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
+  <arg name="required"                default="true" />          <!-- Argument which specified if the entire launch file should terminate if the node dies -->
+  <arg name="sensor_sn"               default="" />               <!-- Sensor serial number. If none provided, the first sensor will be selected -->
+  <arg name="recording_file"          default="" />               <!-- Absolute path to a mkv recording file which will be used with the playback api instead of opening a device -->
+  <arg name="recording_loop_enabled"  default="false" />          <!-- If set to true the recording file will rewind the beginning once end of file is reached -->
+  <arg name="body_tracking_enabled"           default="true" />  <!-- If set to true the joint positions will be published as marker arrays -->
+  <arg name="body_tracking_smoothing_factor"  default="0.0" />    <!-- Set between 0 for no smoothing and 1 for full smoothing -->
+  <arg name="rescale_ir_to_mono8"  default="false" />    <!-- Whether to rescale the IR image to an 8-bit monochrome image for visualization and further processing. A scaling factor (ir_mono8_scaling_factor) is applied. -->
+  <arg name="ir_mono8_scaling_factor"  default="1.0" />    <!-- Scaling factor to apply when converting IR to mono8 (see rescale_ir_to_mono8). If using illumination, use the value 0.5-1. If using passive IR, use 10. -->
+  <arg name="imu_rate_target" default="0"/>                       <!-- Desired output rate of IMU messages. Set to 0 (default) for full rate (1.6 kHz). --> 
+  <arg name="wired_sync_mode" default="0"/>                       <!-- Wired sync mode. 0: OFF, 1: MASTER, 2: SUBORDINATE. --> 
+  <arg name="subordinate_delay_off_master_usec" default="0"/>     <!-- Delay subordinate camera off master camera by specified amount in usec. --> 
+  
+  <arg name="rgb_rect" default="true" />
+  <arg name="depth_rect" default="true" />
+  <arg name="ir_rect" default="true" />
+
+  <arg name="tf_prefix"         default="" />                       <!-- Prefix added to tf frame IDs. It typically contains a trailing '_' unless empty. -->
+  <arg name="overwrite_robot_description" default="true" />         <!-- Flag to publish a standalone azure_description instead of the default robot_descrition parameter-->
+
+  <group if="$(arg overwrite_robot_description)">
+    <param name="robot_description"
+      command="xacro $(find azure_sensor_angle)/urdf/azure_kinect.urdf.xacro tf_prefix:=$(arg tf_prefix)" />
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <rosparam>
+        source_list: ['feedback_angle']
+        use_gui: false
+      </rosparam>
+    </node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" >
+    </node>
+  </group>
+
+  <group unless="$(arg overwrite_robot_description)">
+    <param name="azure_description"
+      command="xacro $(find azure_sensor_angle)/urdf/azure_kinect.urdf.xacro tf_prefix:=$(arg tf_prefix)" />
+    <node name="joint_state_publisher_azure" pkg="joint_state_publisher" type="joint_state_publisher">
+      <remap from="robot_description" to="azure_description" />
+    </node>  
+    <node name="robot_state_publisher_azure" pkg="robot_state_publisher" type="robot_state_publisher">
+      <remap from="robot_description" to="azure_description" />
+    </node>
+  </group>
+
+  <!-- Start the K4A sensor driver -->
+  <group ns="k4a" >
+    
+    <!-- Spawn a nodelet manager -->
+    <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">
+      <param name="num_worker_threads" value="16" />
+    </node>
+
+    <!-- Spawn an image_proc/rectify nodelet to rectify the RGB image -->
+    <node if="$(arg rgb_rect)"
+          pkg="nodelet" type="nodelet" name="rectify_rgb"
+          args="load image_proc/rectify manager --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="rgb/image_raw" />
+      <remap from="image_rect"  to="rgb/image_rect_color" />
+    </node>
+
+    <!-- Spawn an image_proc/rectify nodelet to rectify the depth image -->
+    <node if="$(arg depth_rect)"
+          pkg="nodelet" type="nodelet" name="rectify_depth"
+          args="load image_proc/rectify manager --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="depth/image_raw" />
+      <remap from="image_rect"  to="depth/image_rect" />
+
+      <param name="interpolation" value="0" />
+    </node>
+
+    <!-- Spawn an image_proc/rectify nodelet to rectify the IR image -->
+    <node if="$(arg ir_rect)"
+          pkg="nodelet" type="nodelet" name="rectify_ir"
+          args="load image_proc/rectify manager --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="ir/image_raw" />
+      <remap from="image_rect"  to="ir/image_rect" />
+    </node>
+
+    <group if="$(arg point_cloud)">
+      <!-- Spawn a depth_image_proc/point_cloud_xyz nodelet to convert the 
+          depth image into a point cloud -->
+      
+      <node unless="$(arg rgb_point_cloud)"
+            pkg="nodelet" type="nodelet" name="point_cloud_xyz"
+            args="load depth_image_proc/point_cloud_xyz manager --no-bond"
+            respawn="true">
+        <remap from="image_rect"  to="depth/image_rect" />
+      </node>
+
+      <group if="$(arg rgb_point_cloud)">
+        <!-- Spawn a depth_image_proc/register nodelet to transform the 
+            depth image into the color camera co-ordinate space -->
+        <node pkg="nodelet" type="nodelet" name="depth_register"
+              args="load depth_image_proc/register manager --no-bond"
+              respawn="true">
+        </node>
+
+        <!-- Spawn a depth_image_proc/point_cloud_xyzrgb nodelet to convert the 
+            depth_registered and color images image into a colorized point cloud -->
+        <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
+              args="load depth_image_proc/point_cloud_xyzrgb manager --no-bond"
+              respawn="true">
+        </node>
+      </group>
+
+      <node pkg="nodelet" type="nodelet" name="imu_transformer"
+        args="load imu_transformer/imu_transformer_nodelet manager --no-bond" 
+        respawn="true">
+        <remap from="imu_in/data" to="/k4a/imu" />
+        <remap from="imu_out/data" to="/k4a/imu_transformed" />
+        <rosparam>
+          target_frame: camera_base
+        </rosparam>
+      </node>
+
+      <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
+        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet manager --no-bond" 
+        respawn="true">
+        <remap from="image" to="depth/image_rect"/>
+        <!-- <remap from="scan" to="scan"/> -->
+        <rosparam>
+            scan_height: 100
+            scan_time: 0.033
+            range_min: 0.4
+            range_max: 4.5
+            output_frame_id: camera_base
+        </rosparam>
+      </node>
+
+      <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
+        args="load pointcloud_to_laserscan/pointcloud_to_laserscan_nodelet manager --><!--no-bond" 
+        respawn="true">
+        <remap from="cloud_in" to="points"/>
+        <remap from="scan" to="scan"/>
+        <rosparam>
+            target_frame: base_link # Leave empty to output scan in the pointcloud frame
+            min_height: 0.15
+            max_height: 1.0
+
+            angle_min: -0.61 # -35.0*M_PI/180.0
+            angle_max: 0.61 # 35.0*M_PI/180.0
+            angle_increment: 0.00349 # M_PI/900.0
+            scan_time: 0.2
+            range_min: 0.45
+            range_max: 5.0
+            use_inf: true
+            transform_tolerance: 5.0
+
+            # Concurrency level, affects number of pointclouds queued for processing and number of threads used
+            # 0 : Detect number of cores
+            # 1 : Single threaded
+            # 2->inf : Parallelism level
+            concurrency_level: 0
+        </rosparam>
+      </node> -->
+
+    </group>
+
+    <node pkg="nodelet" type="nodelet" name="k4a_ros_bridge"
+          args="load Azure_Kinect_ROS_Driver/K4AROSBridgeNodelet manager --no-bond"
+          respawn="true">
+        <param name="depth_enabled"     type="bool"   value="$(arg depth_enabled)" />
+        <param name="depth_mode"        type="string" value="$(arg depth_mode)" />
+        <param name="color_enabled"     type="bool"   value="$(arg color_enabled)" />
+        <param name="color_format"      type="string" value="$(arg color_format)" />
+        <param name="color_resolution"  type="string" value="$(arg color_resolution)" />
+        <param name="fps"               type="int"    value="$(arg fps)" />
+        <param name="point_cloud"       type="bool"   value="$(arg point_cloud)" />
+        <param name="rgb_point_cloud"   type="bool"   value="$(arg rgb_point_cloud)" />
+        <param name="point_cloud_in_depth_frame"   type="bool"   value="$(arg point_cloud_in_depth_frame)" />
+        <param name="sensor_sn"         type="string" value="$(arg sensor_sn)" />
+        <param name="tf_prefix"         type="string" value="$(arg tf_prefix)" />
+        <param name="recording_file"          type="string" value="$(arg recording_file)" />
+        <param name="recording_loop_enabled"  type="bool"   value="$(arg recording_loop_enabled)" />
+        <param name="body_tracking_enabled"           type="bool"   value="$(arg body_tracking_enabled)" />
+        <param name="body_tracking_smoothing_factor"  type="double" value="$(arg body_tracking_smoothing_factor)" />
+        <param name="rescale_ir_to_mono8" type="bool" value="$(arg rescale_ir_to_mono8)" />
+        <param name="ir_mono8_scaling_factor" type="double" value="$(arg ir_mono8_scaling_factor)" />
+        <param name="imu_rate_target" type="int" value="$(arg imu_rate_target)"/>
+        <param name="wired_sync_mode" type="int" value="$(arg wired_sync_mode)"/>
+        <param name="subordinate_delay_off_master_usec" type="int" value="$(arg subordinate_delay_off_master_usec)"/>
+    </node>
+
+  </group>
+</launch>

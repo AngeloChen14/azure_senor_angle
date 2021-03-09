@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>azure_sensor_angle</name>
+  <version>0.1.0</version>
+  <description>Kinect angle caculation for azure kinect data.</description>
+  <maintainer email="angelochen@live.cn">Angelo Chen</maintainer>
+  <license>BSD</license>
+  <url type="website">https://github.com/ethz-asl/ros_best_practices</url>
+  <url type="bugtracker">https://github.com/ethz-asl/ros_best_practices/issues</url>
+  <author email="angelochen@live.cn">Angelo Chen</author>
+
+  <!-- buildtool_depend: dependencies of the build process -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <!-- build_depend: dependencies only used in source files -->
+  <build_depend>boost</build_depend>
+  <!-- depend: build, export, and execution dependency -->
+  <depend>eigen</depend>
+  <depend>roscpp</depend>
+  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>message_filters</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>depthimage_to_laserscan</depend>
+
+  <build_depend>roslint</build_depend>
+</package>

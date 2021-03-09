@@ -1,0 +1,42 @@
+<launch>
+
+  <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->>
+  <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
+    <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/output_NFB.mkv" />
+    <arg name="recording_loop_enabled"  default="true" />
+    <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+    <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+    <arg name="body_tracking_enabled"   default="false" />
+  </include>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
+
+  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
+    <rosparam command="load" file="$(dirname)/../config/config.yaml" />
+  </node>
+
+  <!-- <node pkg="imu_transformer" type="imu_transformer_node" name="imu_transformer" output="screen">
+    <remap from="imu_in/data" to="/k4a/imu" />
+    <remap from="imu_out/data" to="/k4a/imu_transformed" />
+    <rosparam>
+      target_frame: camera_base
+    </rosparam>
+  </node> -->
+
+  <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
+    <remap from="imu/data_raw" to="/k4a/imu_transformed" />
+    <remap from="imu/data" to="/k4a/imu_filtered" />
+    <remap from="imu/rpy/filtered" to="/k4a/imu_angle" />
+    <rosparam>
+      # world_frame: nwu
+      fixed_frame: base_link
+      use_mag: false
+      publish_tf: false
+      #reverse_tf: true
+      publish_debug_topics: true
+    </rosparam>
+  </node>
+
+
+
+</launch>

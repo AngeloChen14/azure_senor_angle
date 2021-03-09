@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/angelo/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/angelo/catkin_ws/src/Azure_Kinect_ROS_Driver/include/**",
+        "/home/angelo/catkin_ws/src/azure_sensor_angle/include/**",
+        "/home/angelo/catkin_ws/src/husky/husky_base/include/**",
+        "/home/angelo/catkin_ws/src/husky/husky_sensor_angle/include/**",
+        "/home/angelo/catkin_ws/src/teleop_twist_joy/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

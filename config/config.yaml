@@ -1,0 +1,3 @@
+pos_subscriber_topic: /k4a/body_tracking_data
+scan_subscriber_topic: /k4a/scan
+feedback_subscriber_topic: /k4a/imu_angle

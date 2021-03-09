@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- Launch ROS Package Template Node -->
+  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
+    <rosparam command="load" file="$(dirname)/../config/config.yaml" />
+  </node>
+
+</launch>
