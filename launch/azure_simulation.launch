@@ -11,17 +11,7 @@
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
 
-  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
-    <rosparam command="load" file="$(dirname)/../config/config.yaml" />
-  </node>
-
-  <!-- <node pkg="imu_transformer" type="imu_transformer_node" name="imu_transformer" output="screen">
-    <remap from="imu_in/data" to="/k4a/imu" />
-    <remap from="imu_out/data" to="/k4a/imu_transformed" />
-    <rosparam>
-      target_frame: camera_base
-    </rosparam>
-  </node> -->
+  <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0" name="rosserial" output="screen"/>
 
   <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
     <remap from="imu/data_raw" to="/k4a/imu_transformed" />
@@ -37,6 +27,8 @@
     </rosparam>
   </node>
 
-
+  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
+      <rosparam command="load" file="$(dirname)/../config/config.yaml" />
+  </node>
 
 </launch>
