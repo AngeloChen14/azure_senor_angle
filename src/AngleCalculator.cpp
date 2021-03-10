@@ -96,11 +96,22 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
   geometry_msgs::PoseStamped pose_in;
   geometry_msgs::PoseStamped pose_out;
   double x=0, y=0, angle;
-  static uint8_t pre_id =0;
+  static uint8_t pre_id = 0;
   static double target_angle = 0;
-  bool target_flag = true;
-  uint8_t human_num = body_message.markers.size()/32;
-  if(human_num ==1)
+  bool target_flag = false;
+
+  for(auto iter:body_message.markers)
+  {
+    if(iter.id/100 == pre_id && iter.id%100 == 0)
+    {
+      pose_in.header = iter.header;
+      pose_in.pose  = iter.pose;
+      target_flag = true;
+      break;
+    }
+  }
+
+  if(!target_flag)
   {
     for(auto iter:body_message.markers)
     {
@@ -108,50 +119,42 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
       {
         pose_in.header = iter.header;
         pose_in.pose  = iter.pose;
-        pre_id = iter.id%100;
+        pre_id = iter.id/100;
+        target_flag = true;
         break;
       }
     }
   }
-  else if(human_num>1)
-  {
-    for(auto iter:body_message.markers)
-    {
-      if(iter.id/100 == pre_id && iter.id%100 == 0)
-      {
-        pose_in.header = iter.header;
-        pose_in.pose  = iter.pose;
-        break;
-      }
-    }
-    for(auto iter:body_message.markers)
-    {
-      if(iter.id%100 == 0)
-      {
-        pose_in.header = iter.header;
-        pose_in.pose  = iter.pose;
-        pre_id = iter.id%100;
-        break;
-      }
-    }
-  }
-  else
-    target_flag =false;
   
   if(target_flag)
   {
-    try
-    {
-      tfBuffer_.transform(pose_in,pose_out,"base_link",ros::Duration(3.0));
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+      transformStamped = tfBuffer_.lookupTransform("base_link", pose_in.header.frame_id, ros::Time(0),ros::Duration(1.0));
+      tf2::doTransform(pose_in,pose_out,transformStamped);
       x = pose_out.pose.position.x;
       y = pose_out.pose.position.y;
+    } 
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("Could NOT transform body data to base_link: %s", ex.what());
+    }
+
+    // try
+    // {
+    //   tfBuffer_.transform(pose_in,pose_out,"base_link",ros::Duration(1.0));
+    //   x = pose_out.pose.position.x;
+    //   y = pose_out.pose.position.y;
+    //   // x = pose_in.pose.position.x;
+    //   // y = pose_in.pose.position.y;
+    //   // ROS_WARN_STREAM("Target pose is:"<<x<<','<<y<<';'<<pose_in.pose.position.x<<','<<pose_in.pose.position.y);
       if(sqrt(x*x+y*y) > 1) target_angle = atan2(y,x);
       else target_angle = 0;
-    }
-    catch (tf2::TransformException &ex) 
-    {
-      ROS_WARN("Failure %s\n", ex.what()); //Print exception which was caught
-    }
+    // }
+    // catch (tf2::TransformException &ex) 
+    // {
+    //   ROS_WARN("Failure %s\n", ex.what()); //Print exception which was caught
+    // }
+
   }
 
 
