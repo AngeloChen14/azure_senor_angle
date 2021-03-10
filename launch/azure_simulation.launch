@@ -2,8 +2,8 @@
 
   <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->>
   <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
-    <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/output_NFB.mkv" />
-    <arg name="recording_loop_enabled"  default="true" />
+    <!-- <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/output_NFB.mkv" />
+    <arg name="recording_loop_enabled"  default="true" /> -->
     <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
     <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
     <arg name="body_tracking_enabled"   default="false" />
