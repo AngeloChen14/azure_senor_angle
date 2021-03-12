@@ -56,22 +56,15 @@ void RosAngleCalculator::scanCallback(const sensor_msgs::LaserScan& message)
    laser_msgs_ = message;
 }
 
-void RosAngleCalculator::feedbackCallback(const geometry_msgs::Vector3Stamped& message)
+void RosAngleCalculator::feedbackCallback(const std_msgs::Float64& message)
 {
-  static long seq=0;static double yaw_offset = 0;
-  if(seq > 10)
-  {
-    sensor_msgs::JointState msg;
-    msg.header.seq = seq;
-    msg.header.stamp = ros::Time::now();
-    msg.name.push_back("robot_base_to_camera");
-    msg.position.push_back(message.vector.z - yaw_offset);
-    feedback_pub_.publish(msg);
-  }
-  else
-  {
-    yaw_offset = message.vector.z; 
-  }
+  static long seq = 0;
+  sensor_msgs::JointState msg;
+  msg.header.seq = seq;
+  msg.header.stamp = ros::Time::now();
+  msg.name.push_back("robot_base_to_camera");
+  msg.position.push_back(message.data);
+  feedback_pub_.publish(msg);
   seq++;
 }
 

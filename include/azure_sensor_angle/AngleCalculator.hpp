@@ -13,7 +13,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include "std_msgs/Float64.h"
+#include <std_msgs/Float64.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/JointState.h>
 
@@ -49,7 +49,7 @@ class RosAngleCalculator
    */
   void posCallback(const visualization_msgs::MarkerArray& message);
   void scanCallback(const sensor_msgs::LaserScan& message);
-  void feedbackCallback(const geometry_msgs::Vector3Stamped& message);
+  void feedbackCallback(const std_msgs::Float64& message);
 
   void timer1Callback(const ros::TimerEvent& e);
 
