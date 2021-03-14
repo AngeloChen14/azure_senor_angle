@@ -23,11 +23,13 @@
 #include <std_msgs/Float64.h>
 
 #define PWM_PIN 9       //digital pwm output pin number
-#define PWM_RANGE 940  //pwm us range between 0deg and 90deg(mid-pos)
+#define PWM_RANGE 940  //pwm range between 0deg and 90deg(mid-pos)
 #define PWM_MIDPOS 1500  //pwm length for mid pos
 #define LOOP_INTERVAL 10    //Loop interval(ms),for servo control and feedback
-#define RAMP_SLOPE 10   //PWM change per loop, 40/1000*90 = 3.6deg/10ms = 36deg/0.1s = 360deg/s
+#define RAMP_SLOPE 20   //PWM change per loop, 10/940*90 = 0.957 deg/10ms = 9.57deg/0.1s
+#define FINISH_INTERVAL 200   //time waited(ms) before accepting new goal
 #define M_PI 3.14159265358979323846
+
 template <typename type>
 type sign(type value) {
  return type((value>0)-(value<0));
@@ -42,6 +44,8 @@ ros::Subscriber<std_msgs::Float64> sub("/camera_angle", sub_cb);
 int target_PWM = 1500;
 int current_PWM = 1500;
 Servo servo;
+unsigned long timer;
+unsigned long finish_timer;
 
 float servo_control(){
   float current_angle;
@@ -50,7 +54,12 @@ float servo_control(){
         current_PWM  = target_PWM;
     else
         current_PWM += RAMP_SLOPE*sign(target_PWM - current_PWM); 
+    finish_timer = 0;
   }
+  else{
+    finish_timer++;
+  }
+  
   servo.writeMicroseconds(current_PWM);
   current_angle = (float)(current_PWM - PWM_MIDPOS)*M_PI/(2*PWM_RANGE);
   return current_angle;
@@ -66,7 +75,6 @@ void setup(){
   servo.attach(PWM_PIN); //attach it to pin 9
 }
 
-unsigned long timer;
 void loop(){
   if(millis()- timer > LOOP_INTERVAL){  //10ms loop -> 100Hz control and feedback
     fb_msg.data = servo_control();
@@ -79,5 +87,8 @@ void loop(){
 void sub_cb( const std_msgs::Float64& cmd_msg){
   digitalWrite(13, HIGH-digitalRead(13));  //toggle led
 //  target_angle = cmd_msg.data;
-  target_PWM = constrain(PWM_MIDPOS + int(cmd_msg.data/M_PI*2*PWM_RANGE), PWM_MIDPOS-PWM_RANGE, PWM_MIDPOS+PWM_RANGE);
+  if(target_PWM == current_PWM && finish_timer*LOOP_INTERVAL > FINISH_INTERVAL) //wait until last rotation is finished 
+    target_PWM = constrain(PWM_MIDPOS + int(cmd_msg.data/M_PI*2*PWM_RANGE), PWM_MIDPOS-PWM_RANGE, PWM_MIDPOS+PWM_RANGE);
+//    if(target_PWM == current_PWM) //wait until last rotation is finished 
+//      target_PWM = constrain(PWM_MIDPOS + int(cmd_msg.data/M_PI*2*PWM_RANGE), PWM_MIDPOS-PWM_RANGE, PWM_MIDPOS+PWM_RANGE);
 }

@@ -8,6 +8,7 @@
     <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
     <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
     <arg name="body_tracking_enabled"   default="true" />
+    <arg name="body_tracking_smoothing_factor"  default="0.0" />
   </include>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
