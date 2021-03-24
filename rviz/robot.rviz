@@ -58,7 +58,7 @@ Visualization Manager:
       Marker Topic: /k4a/body_tracking_data
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -112,8 +112,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 1.0999709367752075
-        Min Value: 0.9710352420806885
+        Max Value: 1.2474989891052246
+        Min Value: 0.9613644480705261
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -121,7 +121,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: AxisColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -138,7 +138,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
@@ -205,7 +205,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.206025123596191
+      Distance: 10.86013412475586
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -220,10 +220,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.535397469997406
+      Pitch: 0.46039748191833496
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.26357364654541
+      Yaw: 3.1735732555389404
     Saved: ~
 Window Geometry:
   Camera:

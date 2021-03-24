@@ -50,12 +50,16 @@ class RosAngleCalculator
   void posCallback(const visualization_msgs::MarkerArray& message);
   void scanCallback(const sensor_msgs::LaserScan& message);
   void feedbackCallback(const std_msgs::Float64& message);
-
   void timer1Callback(const ros::TimerEvent& e);
 
-  double calculateAngle(const visualization_msgs::MarkerArray& body_message, const sensor_msgs::LaserScan& laser_message, float fov_angle = 50.0*M_PI/180);
-  double calculateScore(const nav_msgs::Path& nav_message, const sensor_msgs::LaserScan& laser_message, float fov_min=0.4, float fov_max=5.0, float fov_angle=60.0*M_PI/180, // fov parameter(m,m,rad)
-                                                                                                  float laser_min = -0.52, float laser_incre = 0.005);
+  double calculateAngle(const visualization_msgs::MarkerArray& body_message, const sensor_msgs::LaserScan& laser_message);
+  double calculateAngle_Target(const geometry_msgs::PoseStamped);
+  double calculateAngle_Path(const sensor_msgs::LaserScan& laser_message);
+
+  double calculateScore(const nav_msgs::Path& nav_message, const sensor_msgs::LaserScan& laser_message);
+  double calculateScore_Taget(const geometry_msgs::PoseStamped, const sensor_msgs::LaserScan& laser_message);
+  double calculateScore_Path(const nav_msgs::Path& nav_message, const sensor_msgs::LaserScan& laser_message);  
+  double calculateScore_Scan(const sensor_msgs::LaserScan& laser_message,float weight_factor);  
 
 
 
@@ -74,9 +78,9 @@ class RosAngleCalculator
   //! ROS topic subscriber.
   ros::Subscriber pos_sub_;
   ros::Subscriber scan_sub_;
+  ros::Subscriber feedback_sub_;
   ros::Publisher angle_pub_;
   ros::Publisher score_pub_;
-  ros::Subscriber feedback_sub_;
   ros::Publisher feedback_pub_;
   ros::Timer timer1_;
 
@@ -94,5 +98,7 @@ class RosAngleCalculator
   nav_msgs::Path nav_msgs_;
   sensor_msgs::LaserScan laser_msgs_;
   visualization_msgs::MarkerArray body_msgs_;
+  geometry_msgs::PoseStamped target_pose_;
+  double fb_angle_;
 };
 } /* namespace */

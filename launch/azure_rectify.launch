@@ -130,11 +130,11 @@ Licensed under the MIT License.
         </rosparam>
       </node>
 
-      <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
-        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet manager --no-bond" 
+      <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
+        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet manager --><!--no-bond" 
         respawn="true">
         <remap from="image" to="depth/image_rect"/>
-        <!-- <remap from="scan" to="scan"/> -->
+        <remap from="scan" to="scan"/>
         <rosparam>
             scan_height: 100
             scan_time: 0.033
@@ -142,23 +142,23 @@ Licensed under the MIT License.
             range_max: 4.5
             output_frame_id: camera_base
         </rosparam>
-      </node>
+      </node> -->
 
-      <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
-        args="load pointcloud_to_laserscan/pointcloud_to_laserscan_nodelet manager --><!--no-bond" 
+      <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
+        args="load pointcloud_to_laserscan/pointcloud_to_laserscan_nodelet manager --no-bond" 
         respawn="true">
         <remap from="cloud_in" to="points"/>
         <remap from="scan" to="scan"/>
         <rosparam>
-            target_frame: base_link # Leave empty to output scan in the pointcloud frame
+            target_frame: camera_visor # Leave empty to output scan in the pointcloud frame
             min_height: 0.15
             max_height: 1.0
 
             angle_min: -0.61 # -35.0*M_PI/180.0
             angle_max: 0.61 # 35.0*M_PI/180.0
-            angle_increment: 0.00349 # M_PI/900.0
+            angle_increment: 0.004 # M_PI/900.0
             scan_time: 0.2
-            range_min: 0.45
+            range_min: 0.4
             range_max: 5.0
             use_inf: true
             transform_tolerance: 5.0
@@ -169,7 +169,7 @@ Licensed under the MIT License.
             # 2->inf : Parallelism level
             concurrency_level: 0
         </rosparam>
-      </node> -->
+      </node>
 
     </group>
 
