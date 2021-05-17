@@ -84,6 +84,16 @@ Licensed under the MIT License.
       <param name="interpolation" value="0" />
     </node>
 
+    <node if="$(arg depth_rect)"
+          pkg="nodelet" type="nodelet" name="rectify_depth_to_rgb"
+          args="load image_proc/rectify manager --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="depth_to_rgb/image_raw" />
+      <remap from="image_rect"  to="depth_to_rgb/image_rect" />
+
+      <param name="interpolation" value="0" />
+    </node>
+
     <!-- Spawn an image_proc/rectify nodelet to rectify the IR image -->
     <node if="$(arg ir_rect)"
           pkg="nodelet" type="nodelet" name="rectify_ir"
@@ -151,15 +161,15 @@ Licensed under the MIT License.
         <remap from="scan" to="scan"/>
         <rosparam>
             target_frame: camera_visor # Leave empty to output scan in the pointcloud frame
-            min_height: 0.15
-            max_height: 1.0
+            min_height: -0.7 #0.1-0.8
+            max_height:  0.2 #1.0-0.8
 
             angle_min: -0.61 # -35.0*M_PI/180.0
             angle_max: 0.61 # 35.0*M_PI/180.0
             angle_increment: 0.004 # M_PI/900.0
             scan_time: 0.2
-            range_min: 0.4
-            range_max: 5.0
+            range_min: 0.75
+            range_max: 4.5
             use_inf: true
             transform_tolerance: 5.0
 

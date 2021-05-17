@@ -62,7 +62,7 @@
   <joint name="$(arg tf_prefix)robot_base_to_camera" type="revolute">
     <parent link="$(arg tf_prefix)base_link" />
     <child link="$(arg tf_prefix)camera_base" />
-    <origin xyz="0. 0. 0.8" rpy="0. -0.1 0." />
+    <origin xyz="0. 0. 0.8" rpy="0. 0. 0." />
 		<axis xyz="0 0 1"/>
     <limit effort="50.0" velocity="10.0" lower="-1.57" upper="1.57" />
   </joint>

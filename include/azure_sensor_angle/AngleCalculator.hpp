@@ -16,6 +16,8 @@
 #include <std_msgs/Float64.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/JointState.h>
+#include "geometry_msgs/Quaternion.h"
+#include "tf/transform_datatypes.h"
 
 namespace ros_sensor_angle {
 
@@ -61,7 +63,7 @@ class RosAngleCalculator
   double calculateScore_Path(const nav_msgs::Path& nav_message, const sensor_msgs::LaserScan& laser_message);  
   double calculateScore_Scan(const sensor_msgs::LaserScan& laser_message,float weight_factor);  
 
-
+  void setNavGoal(const geometry_msgs::PoseStamped& target_message);
 
   /*!
    * ROS service server callback.
@@ -82,6 +84,7 @@ class RosAngleCalculator
   ros::Publisher angle_pub_;
   ros::Publisher score_pub_;
   ros::Publisher feedback_pub_;
+  ros::Publisher nav_pub_;
   ros::Timer timer1_;
 
   //! ROS topic name to subscribe to.

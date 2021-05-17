@@ -1,21 +1,44 @@
 <launch>
+   <arg name="if_simulation"          default="true"/>
+   <arg name="if_navigation"          default="true"/>
+  <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->
+  <group if="$(arg if_simulation)">
+    <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
+      <!-- <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/3.11_NFB_5fps_indoor.mkv"/> -->
+      <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/output_NFB.mkv"/>
+      <arg name="recording_loop_enabled"  default="true" />
+      <arg name="fps"                     default="5" />
+      <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+      <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+      <arg name="body_tracking_enabled"   default="false" />
+      <arg name="body_tracking_smoothing_factor"  default="0.0" />
+    </include>
+  </group>
 
-  <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->>
-  <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
-    <arg name="recording_file"          default="/home/angelo/catkin_ws/data/2.26_azure_record/3.11_NFB_5fps_indoor.mkv"/>
-    <arg name="recording_loop_enabled"  default="true" />
-    <arg name="fps"                     default="5" />
-    <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
-    <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
-    <arg name="body_tracking_enabled"   default="true" />
-    <arg name="body_tracking_smoothing_factor"  default="0.0" />
-  </include>
+  <group unless="$(arg if_simulation)">
+    <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch" unless="$(arg if_simulation)">
+      <arg name="fps"                     default="5" />
+      <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth dateca. Requires depth_enabled -->
+      <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+      <arg name="body_tracking_enabled"   default="true" />
+      <arg name="body_tracking_smoothing_factor"  default="0.0" />
+    </include>
+  </group>
+
+  <group if="$(arg if_navigation)">
+    <include file="$(find jetbot_navigation)/launch/move_base_mapless_demo.launch" />
+    <node pkg="tf" type="static_transform_publisher" name="odom_broadcaster" args="0 0 0 0 0 0 1 odom base_link 50"/>
+  </group>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
 
-  <!-- <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0" name="rosserial" output="screen"/> -->
+  <!-- <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0 _baud:=19200" name="rosserial" output="screen" unless="$(arg if_simulation)"/> -->
 
-  <!-- <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
+  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
+      <rosparam command="load" file="$(dirname)/../config/config.yaml" />
+  </node>
+
+    <!-- <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
     <remap from="imu/data_raw" to="/k4a/imu_transformed" />
     <remap from="imu/data" to="/k4a/imu_filtered" />
     <remap from="imu/rpy/filtered" to="/k4a/imu_angle" />
@@ -28,8 +51,5 @@
       publish_debug_topics: true
     </rosparam>
   </node> -->
-  <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
-      <rosparam command="load" file="$(dirname)/../config/config.yaml" />
-  </node>
 
 </launch>
