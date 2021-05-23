@@ -19,7 +19,7 @@
     <color rgba="0.9 0.9 0.9 1" />
   </material>
 
-  <link name="$(arg tf_prefix)base_link">
+  <!-- <link name="$(arg tf_prefix)base_link">
     <visual>
       <origin xyz="0. 0. 0." />
       <geometry>
@@ -27,7 +27,7 @@
       </geometry>
       <material name="white" />
     </visual>
-  </link>
+  </link> -->
 
   <link name="$(arg tf_prefix)camera_body">
     <visual>
@@ -59,13 +59,13 @@
     </visual>
   </link>
 
-  <joint name="$(arg tf_prefix)robot_base_to_camera" type="revolute">
-    <parent link="$(arg tf_prefix)base_link" />
+  <!-- <joint name="$(arg tf_prefix)robot_gimbal_to_camera" type="revolute">
+    <parent link="gimbal_link" />
     <child link="$(arg tf_prefix)camera_base" />
-    <origin xyz="0. 0. 0.8" rpy="0. 0. 0." />
+    <origin xyz="0.03 0. 0.09" rpy="0. 0. 0." />
 		<axis xyz="0 0 1"/>
     <limit effort="50.0" velocity="10.0" lower="-1.57" upper="1.57" />
-  </joint>
+  </joint> -->
 
   <joint name="$(arg tf_prefix)camera_base_to_body" type="fixed">
     <parent link="$(arg tf_prefix)camera_base" />
