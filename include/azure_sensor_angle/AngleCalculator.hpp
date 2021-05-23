@@ -18,6 +18,8 @@
 #include <sensor_msgs/JointState.h>
 #include "geometry_msgs/Quaternion.h"
 #include "tf/transform_datatypes.h"
+#include <rm_msgs/GimbalCtrl.h> 
+#include <rm_msgs/GimbalAngle.h> 
 
 namespace ros_sensor_angle {
 
@@ -51,7 +53,7 @@ class RosAngleCalculator
    */
   void posCallback(const visualization_msgs::MarkerArray& message);
   void scanCallback(const sensor_msgs::LaserScan& message);
-  void feedbackCallback(const std_msgs::Float64& message);
+  void feedbackCallback(const rm_msgs::GimbalAngle& message);
   void timer1Callback(const ros::TimerEvent& e);
 
   double calculateAngle(const visualization_msgs::MarkerArray& body_message, const sensor_msgs::LaserScan& laser_message);
@@ -102,6 +104,8 @@ class RosAngleCalculator
   sensor_msgs::LaserScan laser_msgs_;
   visualization_msgs::MarkerArray body_msgs_;
   geometry_msgs::PoseStamped target_pose_;
-  double fb_angle_;
+  double yaw_des_;
+  double yaw_feedback_;
+  ros::Time lastUpdateTime_;
 };
 } /* namespace */

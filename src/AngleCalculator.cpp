@@ -6,7 +6,7 @@
 namespace ros_sensor_angle {
 
 RosAngleCalculator::RosAngleCalculator(ros::NodeHandle& nodeHandle)
- : nodeHandle_(nodeHandle), tfListener_(tfBuffer_)
+ : nodeHandle_(nodeHandle), tfListener_(tfBuffer_),yaw_des_(0.0),yaw_feedback_(0.0),lastUpdateTime_(ros::Time::now())
 {
   if (!readParameters()) {
     ROS_ERROR("Could not read parameters.");
@@ -23,17 +23,18 @@ RosAngleCalculator::RosAngleCalculator(ros::NodeHandle& nodeHandle)
   // serviceServer_ = nodeHandle_.advertiseService("get_average",
   //                                               &RosAngleCalculator::serviceCallback, this);
 
-  angle_pub_ = nodeHandle_.advertise<std_msgs::Float64>("/camera_angle", 100, true);
+  angle_pub_ = nodeHandle_.advertise<rm_msgs::GimbalCtrl>("/gimbal_cmd", 100, true);
   score_pub_ = nodeHandle_.advertise<std_msgs::Float64>("/angle_score", 100, true);
-  feedback_pub_ = nodeHandle_.advertise<sensor_msgs::JointState>("/feedback_angle", 100, true);
+  // feedback_pub_ = nodeHandle_.advertise<sensor_msgs::JointState>("/feedback_angle", 100, true);
   nav_pub_   = nodeHandle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 100, true);
-  // timer1_ = nodeHandle_.createTimer(ros::Duration(0.1),&RosAngleCalculator::timer1Callback,this);  
+  timer1_ = nodeHandle_.createTimer(ros::Duration(0.1),&RosAngleCalculator::timer1Callback,this);  
 
   ROS_INFO("Successfully launched azure sensor angle node.");
 }
 
 RosAngleCalculator::~RosAngleCalculator()
 {
+
 }
 
 bool RosAngleCalculator::readParameters()
@@ -47,10 +48,10 @@ bool RosAngleCalculator::readParameters()
 void RosAngleCalculator::posCallback(const visualization_msgs::MarkerArray& message)
 {
   body_msgs_ = message;
-  std_msgs::Float64 msg;
-  msg.data = calculateAngle(body_msgs_, laser_msgs_);
-  angle_pub_.publish(msg);
-  
+  // std_msgs::Float64 msg;
+  yaw_des_= calculateAngle(body_msgs_, laser_msgs_);
+  // angle_pub_.publish(msg);
+  // lastUpdateTime_ = ros::Time::now();
 }
 
 void RosAngleCalculator::scanCallback(const sensor_msgs::LaserScan& message)
@@ -58,21 +59,32 @@ void RosAngleCalculator::scanCallback(const sensor_msgs::LaserScan& message)
    laser_msgs_ = message;
 }
 
-void RosAngleCalculator::feedbackCallback(const std_msgs::Float64& message)
+void RosAngleCalculator::feedbackCallback(const rm_msgs::GimbalAngle& message)
 {
-  fb_angle_ = message.data;
-  static long seq = 0;
-  sensor_msgs::JointState msg;
-  msg.header.seq = seq;
-  msg.header.stamp = ros::Time::now();
-  msg.name.push_back("robot_base_to_camera");
-  msg.position.push_back(message.data);
-  feedback_pub_.publish(msg);
-  seq++;
+  yaw_feedback_ = message.yaw;
 }
 
 void RosAngleCalculator::timer1Callback(const ros::TimerEvent& e)
 {
+  static uint8_t nav_count = 0;
+  rm_msgs::GimbalCtrl gimbal_msg;
+  if((ros::Time::now()-lastUpdateTime_).toSec() > 5.0)
+  {
+      yaw_des_ = 0;
+  }
+
+  gimbal_msg.ctrl_mode = 7;
+  gimbal_msg.pit_ref = 0.0;
+  gimbal_msg.yaw_ref = yaw_des_;
+  gimbal_msg.visual_valid = 0;
+  angle_pub_.publish(gimbal_msg); 
+
+if(target_pose_.header.frame_id.size()>0 && nav_count > 10)
+{
+  setNavGoal(target_pose_);
+  nav_count = 0;
+}
+  nav_count++;
   // std_msgs::Float64 msg;
   // static bool SensorReadyFlag = false;
   // if(!SensorReadyFlag && body_msgs_.markers.size()!=0 && laser_msgs_.header.seq!=0)
@@ -129,7 +141,8 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
   {
     ROS_INFO_STREAM("Target position is:"<<target_pose_.pose.position);
     target_angle = calculateAngle_Target(target_pose_);
-    setNavGoal(target_pose_);
+    lastUpdateTime_ = ros::Time::now();
+    // setNavGoal(target_pose_);
     // count++;
     // if(count>5)
     // {
@@ -225,8 +238,8 @@ double RosAngleCalculator::calculateAngle_Path(const sensor_msgs::LaserScan& las
     }
   }
   // ROS_INFO_STREAM("Index sum is:"<<index_sum<<"Range sum is:"<<range_sum);
-  path_angle = (double)index_sum/range_sum*laser_message.angle_increment+laser_message.angle_min + fb_angle_;
-  // ROS_INFO_STREAM("Path angle is:"<<(path_angle-fb_angle_)/M_PI*180);
+  path_angle = (double)index_sum/range_sum*laser_message.angle_increment+laser_message.angle_min + yaw_feedback_;
+  // ROS_INFO_STREAM("Path angle is:"<<(path_angle-yaw_feedback_)/M_PI*180);
   return path_angle;
 }
 
@@ -378,11 +391,11 @@ void RosAngleCalculator::setNavGoal(const geometry_msgs::PoseStamped& target_mes
 {
   geometry_msgs::PoseStamped pose_in, pose_out;
   pose_in = target_message;
-  // pose_in.pose.position.x -= 0.5;
+
   geometry_msgs::TransformStamped transformStamped;
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("odom", pose_in.header.frame_id, ros::Time(0),ros::Duration(0.1));
+    transformStamped = tfBuffer_.lookupTransform("base_link", pose_in.header.frame_id, ros::Time(0),ros::Duration(0.1));
     tf2::doTransform(pose_in,pose_out,transformStamped);
     pose_out.pose.position.z = 0;
   }
@@ -395,9 +408,24 @@ void RosAngleCalculator::setNavGoal(const geometry_msgs::PoseStamped& target_mes
   double yaw = atan2(pose_out.pose.position.y,pose_out.pose.position.x);
   // ROS_INFO_STREAM("Target Yaw is:"<<yaw/M_PI*180);
   pose_out.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-  pose_out.pose.position.z = 0;
-  pose_out.pose.position.x -= 0.3*cos(yaw);
-  pose_out.pose.position.y -= 0.3*sin(yaw);
+  pose_out.pose.position.x -= 1.0*cos(yaw);
+  pose_out.pose.position.y -= 1.0*sin(yaw);
+  pose_in = pose_out;
+
+  try
+  {
+    transformStamped = tfBuffer_.lookupTransform("odom", pose_in.header.frame_id, ros::Time(0),ros::Duration(0.1));
+    tf2::doTransform(pose_in,pose_out,transformStamped);
+    pose_out.pose.position.z = 0;
+  }
+  catch (tf2::TransformException &ex) 
+  {
+    ROS_WARN("Transform Failure %s\n", ex.what()); //Print exception which was caught
+  }
+  // pose_out.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+  // pose_out.pose.position.z = 0;
+  // pose_out.pose.position.x -= 0.3*cos(yaw);
+  // pose_out.pose.position.y -= 0.3*sin(yaw);
   // pose_out.pose.position.x -= sin(yaw);
   // pose_out.pose.position.y += cos(yaw);
   nav_pub_.publish(pose_out);

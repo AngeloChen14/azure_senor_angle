@@ -25,6 +25,7 @@
   <depend>depthimage_to_laserscan</depend>
   <depend>pointcloud_to_laserscan</depend>
   <depend>rosserial_python</depend>
+  <depend>rm_msgs</depend>
 
   <build_depend>roslint</build_depend>
 </package>
