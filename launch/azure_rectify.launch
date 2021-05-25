@@ -27,7 +27,7 @@ Licensed under the MIT License.
   
   <arg name="rgb_rect" default="true" />
   <arg name="depth_rect" default="true" />
-  <arg name="ir_rect" default="true" />
+  <arg name="ir_rect" default="false" />
 
   <arg name="tf_prefix"         default="" />                       <!-- Prefix added to tf frame IDs. It typically contains a trailing '_' unless empty. -->
   <arg name="overwrite_robot_description" default="true" />         <!-- Flag to publish a standalone azure_description instead of the default robot_descrition parameter-->
@@ -36,10 +36,10 @@ Licensed under the MIT License.
     <param name="robot_description"
       command="xacro $(find azure_sensor_angle)/urdf/azure_kinect.urdf.xacro tf_prefix:=$(arg tf_prefix)" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-      <rosparam>
+      <!-- <rosparam>
         source_list: ['feedback_angle']
         use_gui: false
-      </rosparam>
+      </rosparam> -->
     </node>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" >
     </node>
@@ -130,25 +130,25 @@ Licensed under the MIT License.
         </node>
       </group>
 
-      <node pkg="nodelet" type="nodelet" name="imu_transformer"
-        args="load imu_transformer/imu_transformer_nodelet manager --no-bond" 
+      <!-- <node pkg="nodelet" type="nodelet" name="imu_transformer"
+        args="load imu_transformer/imu_transformer_nodelet manager no-bond" 
         respawn="true">
         <remap from="imu_in/data" to="/k4a/imu" />
         <remap from="imu_out/data" to="/k4a/imu_transformed" />
         <rosparam>
           target_frame: camera_base
         </rosparam>
-      </node>
+      </node> -->
 
-      <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_laserscan"
-        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet manager --><!--no-bond" 
+      <!-- <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan"
+        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet manager --> <!--no-bond" 
         respawn="true">
         <remap from="image" to="depth/image_rect"/>
         <remap from="scan" to="scan"/>
         <rosparam>
-            scan_height: 100
-            scan_time: 0.033
-            range_min: 0.4
+            scan_height: 5
+            scan_time: 0.2
+            range_min: 0.2
             range_max: 4.5
             output_frame_id: camera_base
         </rosparam>
@@ -160,11 +160,11 @@ Licensed under the MIT License.
         <remap from="cloud_in" to="points"/>
         <remap from="scan" to="scan"/>
         <rosparam>
-            target_frame: camera_visor # Leave empty to output scan in the pointcloud frame
-            min_height: -0.7 #0.1-0.8
-            max_height:  0.2 #1.0-0.8
+            target_frame: gimbal_yaw # Leave empty to output scan in the pointcloud frame
+            min_height: -0.15 #0.15-0.3
+            max_height: 0.7   #1.0-0.3
 
-            angle_min: -0.61 # -35.0*M_PI/180.0
+            angle_min: -0.61 # -35.0*M_PrI/180.0
             angle_max: 0.61 # 35.0*M_PI/180.0
             angle_increment: 0.004 # M_PI/900.0
             scan_time: 0.2
@@ -192,7 +192,8 @@ Licensed under the MIT License.
         <param name="color_format"      type="string" value="$(arg color_format)" />
         <param name="color_resolution"  type="string" value="$(arg color_resolution)" />
         <param name="fps"               type="int"    value="$(arg fps)" />
-        <param name="point_cloud"       type="bool"   value="$(arg point_cloud)" />
+        <!-- <param name="point_cloud"       type="bool"   value="$(arg point_cloud)" /> -->
+        <param name="point_cloud"       type="bool"   value="false" />
         <param name="rgb_point_cloud"   type="bool"   value="$(arg rgb_point_cloud)" />
         <param name="point_cloud_in_depth_frame"   type="bool"   value="$(arg point_cloud_in_depth_frame)" />
         <param name="sensor_sn"         type="string" value="$(arg sensor_sn)" />

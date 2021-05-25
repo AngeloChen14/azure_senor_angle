@@ -2,7 +2,6 @@
 
 #include "azure_sensor_angle/Algorithm.hpp"
 
-
 // ROS
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
@@ -105,7 +104,17 @@ class RosAngleCalculator
   visualization_msgs::MarkerArray body_msgs_;
   geometry_msgs::PoseStamped target_pose_;
   double yaw_des_;
+  double yaw_ramp_;
   double yaw_feedback_;
   ros::Time lastUpdateTime_;
 };
 } /* namespace */
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+template <typename T>
+T clip(const T& n, const T& lower, const T& upper) {
+  return std::max(lower, std::min(n, upper));
+}

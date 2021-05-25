@@ -27,7 +27,7 @@ RosAngleCalculator::RosAngleCalculator(ros::NodeHandle& nodeHandle)
   score_pub_ = nodeHandle_.advertise<std_msgs::Float64>("/angle_score", 100, true);
   // feedback_pub_ = nodeHandle_.advertise<sensor_msgs::JointState>("/feedback_angle", 100, true);
   nav_pub_   = nodeHandle_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 100, true);
-  timer1_ = nodeHandle_.createTimer(ros::Duration(0.1),&RosAngleCalculator::timer1Callback,this);  
+  timer1_ = nodeHandle_.createTimer(ros::Duration(0.05),&RosAngleCalculator::timer1Callback,this);  
 
   ROS_INFO("Successfully launched azure sensor angle node.");
 }
@@ -50,6 +50,7 @@ void RosAngleCalculator::posCallback(const visualization_msgs::MarkerArray& mess
   body_msgs_ = message;
   // std_msgs::Float64 msg;
   yaw_des_= calculateAngle(body_msgs_, laser_msgs_);
+  yaw_des_= clip(yaw_des_,-1.5,1.5);
   // angle_pub_.publish(msg);
   // lastUpdateTime_ = ros::Time::now();
 }
@@ -73,13 +74,19 @@ void RosAngleCalculator::timer1Callback(const ros::TimerEvent& e)
       yaw_des_ = 0;
   }
 
+  if(fabs(yaw_des_-yaw_ramp_)>0.05) {
+    yaw_ramp_ += 0.05*sgn(yaw_des_-yaw_ramp_);
+  }
+  else{
+    yaw_ramp_ = yaw_des_;
+  }
   gimbal_msg.ctrl_mode = 7;
-  gimbal_msg.pit_ref = 0.0;
-  gimbal_msg.yaw_ref = yaw_des_;
+  gimbal_msg.pit_ref = -0.3;
+  gimbal_msg.yaw_ref = yaw_ramp_;
   gimbal_msg.visual_valid = 0;
   angle_pub_.publish(gimbal_msg); 
 
-if(target_pose_.header.frame_id.size()>0 && nav_count > 10)
+if(target_pose_.header.frame_id.size()>0 && nav_count > 20)
 {
   setNavGoal(target_pose_);
   nav_count = 0;
@@ -139,7 +146,7 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
   
   if(target_flag)
   {
-    ROS_INFO_STREAM("Target position is:"<<target_pose_.pose.position);
+    // ROS_INFO_STREAM("Target position is:"<<target_pose_.pose.position);
     target_angle = calculateAngle_Target(target_pose_);
     lastUpdateTime_ = ros::Time::now();
     // setNavGoal(target_pose_);
@@ -160,6 +167,7 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
   
   //Visual Servo Policy
   angle = path_angle*0.0 + target_angle*1.0;
+  // ROS_INFO_STREAM("path_angle is "<<path_angle<<"target_angle is: "<<target_angle);
   // 3 Stage Policy
   // if(abs(target_angle)<fov_angle/2) 
   //   angle = target_angle;
@@ -203,7 +211,7 @@ double RosAngleCalculator::calculateAngle_Target(const geometry_msgs::PoseStampe
   double x=0, y=0, target_angle=0;
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("gimbal_mount", target_message.header.frame_id, ros::Time(0),ros::Duration(0.1));
+    transformStamped = tfBuffer_.lookupTransform("gimbal_mount", target_message.header.frame_id, target_message.header.stamp, ros::Duration(0.1));
     tf2::doTransform(target_message,pose_out,transformStamped);
   }
   catch (tf2::TransformException &ex) 
@@ -264,8 +272,8 @@ double RosAngleCalculator::calculateScore_Taget(const geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped pose_out;
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("camera_visor", target_message.header.frame_id, ros::Time(0),ros::Duration(0.5));
-     tf2::doTransform(target_message,pose_out,transformStamped);
+    transformStamped = tfBuffer_.lookupTransform("camera_visor", target_message.header.frame_id, target_message.header.stamp,ros::Duration(0.5));
+    tf2::doTransform(target_message,pose_out,transformStamped);
   }
   catch (tf2::TransformException &ex) 
   {
@@ -303,7 +311,7 @@ double RosAngleCalculator::calculateScore_Path(const nav_msgs::Path& nav_message
 
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("camera_link", nav_message.poses.back().header.frame_id, ros::Time(0),ros::Duration(0.5));
+    transformStamped = tfBuffer_.lookupTransform("camera_link", nav_message.poses.back().header.frame_id, nav_message.poses.back().header.stamp,ros::Duration(0.5));
   }
   catch (tf2::TransformException &ex) 
   {
@@ -395,7 +403,7 @@ void RosAngleCalculator::setNavGoal(const geometry_msgs::PoseStamped& target_mes
   geometry_msgs::TransformStamped transformStamped;
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("base_link", pose_in.header.frame_id, ros::Time(0),ros::Duration(0.1));
+    transformStamped = tfBuffer_.lookupTransform("base_link", pose_in.header.frame_id, pose_in.header.stamp,ros::Duration(0.1));
     tf2::doTransform(pose_in,pose_out,transformStamped);
     pose_out.pose.position.z = 0;
   }
@@ -414,7 +422,7 @@ void RosAngleCalculator::setNavGoal(const geometry_msgs::PoseStamped& target_mes
 
   try
   {
-    transformStamped = tfBuffer_.lookupTransform("odom", pose_in.header.frame_id, ros::Time(0),ros::Duration(0.1));
+    transformStamped = tfBuffer_.lookupTransform("odom", pose_in.header.frame_id, pose_in.header.stamp,ros::Duration(0.1));
     tf2::doTransform(pose_in,pose_out,transformStamped);
     pose_out.pose.position.z = 0;
   }

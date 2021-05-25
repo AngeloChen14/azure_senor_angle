@@ -1,6 +1,6 @@
 <launch>
    <arg name="if_simulation"          default="false"/>
-   <arg name="if_navigation"          default="false"/>
+   <arg name="if_navigation"          default="true"/>
   <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->
   <group if="$(arg if_simulation)">
     <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
@@ -20,7 +20,7 @@
       <arg name="fps"                     default="5" />
       <arg name="point_cloud"             default="true" />           <!-- Generate a point cloud from depth dateca. Requires depth_enabled -->
       <arg name="rgb_point_cloud"         default="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
-      <arg name="body_tracking_enabled"   default="true" />
+      <arg name="body_tracking_enabled"   default="false" />
       <arg name="body_tracking_smoothing_factor"  default="0.0" />
     </include>
   </group>
@@ -29,7 +29,9 @@
     <include file="$(find jetbot_navigation)/launch/move_base_mapless_demo.launch" />
   </group>
 
-  <node pkg="tf" type="static_transform_publisher" name="gimbal_broadcaster" args="0.03 0 0.09 0 0 0 1 gimbal_link camera_base 50"/> 
+  <!-- <node pkg="tf" type="static_transform_publisher" name="gimbal_broadcaster" args="0.03 0 0.08 0 -0.1 0 gimbal_link camera_base 100"/>  -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="gimbal_broadcaster" args="0.03 0 0.15 0 0.08 0 gimbal_link camera_base"/> 
+
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
 
   <!-- <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0 _baud:=19200" name="rosserial" output="screen" unless="$(arg if_simulation)"/> -->
@@ -38,6 +40,7 @@
       <rosparam command="load" file="$(dirname)/../config/config.yaml" />
   </node>
 
+  <node pkg="serial" type="serial_com_node" name="serial_com_node"/>
     <!-- <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
     <remap from="imu/data_raw" to="/k4a/imu_transformed" />
     <remap from="imu/data" to="/k4a/imu_filtered" />
