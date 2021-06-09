@@ -81,7 +81,7 @@ void RosAngleCalculator::timer1Callback(const ros::TimerEvent& e)
     yaw_ramp_ = yaw_des_;
   }
   gimbal_msg.ctrl_mode = 7;
-  gimbal_msg.pit_ref = -0.3;
+  gimbal_msg.pit_ref = -0.15;
   gimbal_msg.yaw_ref = yaw_ramp_;
   gimbal_msg.visual_valid = 0;
   angle_pub_.publish(gimbal_msg); 

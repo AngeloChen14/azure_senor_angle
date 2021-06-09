@@ -32,15 +32,17 @@
   <!-- <node pkg="tf" type="static_transform_publisher" name="gimbal_broadcaster" args="0.03 0 0.08 0 -0.1 0 gimbal_link camera_base 100"/>  -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="gimbal_broadcaster" args="0.03 0 0.15 0 0.08 0 gimbal_link camera_base"/> 
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/>
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find azure_sensor_angle)/rviz/robot.rviz" output="screen"/> -->
 
   <!-- <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0 _baud:=19200" name="rosserial" output="screen" unless="$(arg if_simulation)"/> -->
+
+  <node pkg="serial" type="serial_com_node" name="serial_com_node" output="screen"/>
 
   <node pkg="azure_sensor_angle" type="azure_sensor_angle" name="azure_sensor_angle" output="screen">
       <rosparam command="load" file="$(dirname)/../config/config.yaml" />
   </node>
 
-  <node pkg="serial" type="serial_com_node" name="serial_com_node"/>
+  <!-- <node pkg="serial" type="serial_com_node" name="serial_com_node"/> -->
     <!-- <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen">
     <remap from="imu/data_raw" to="/k4a/imu_transformed" />
     <remap from="imu/data" to="/k4a/imu_filtered" />
