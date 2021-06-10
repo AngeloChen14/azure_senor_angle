@@ -6,7 +6,7 @@
 namespace ros_sensor_angle {
 
 RosAngleCalculator::RosAngleCalculator(ros::NodeHandle& nodeHandle)
- : nodeHandle_(nodeHandle), tfListener_(tfBuffer_),yaw_des_(0.0),yaw_feedback_(0.0),lastUpdateTime_(ros::Time::now())
+ : nodeHandle_(nodeHandle), tfListener_(tfBuffer_),lastUpdateTime_(ros::Time::now())//,yaw_des_(0.0),yaw_feedback_(0.0)
 {
   if (!readParameters()) {
     ROS_ERROR("Could not read parameters.");
@@ -14,7 +14,7 @@ RosAngleCalculator::RosAngleCalculator(ros::NodeHandle& nodeHandle)
   }
   pos_sub_ = nodeHandle_.subscribe(posSubTopic_, 100,
                                       &RosAngleCalculator::posCallback, this);
-                                      
+         
   scan_sub_ = nodeHandle_.subscribe(scanSubTopic_, 100,
                                       &RosAngleCalculator::scanCallback, this);
 
@@ -49,8 +49,9 @@ void RosAngleCalculator::posCallback(const visualization_msgs::MarkerArray& mess
 {
   body_msgs_ = message;
   // std_msgs::Float64 msg;
-  yaw_des_= calculateAngle(body_msgs_, laser_msgs_);
-  yaw_des_= clip(yaw_des_,-1.5,1.5);
+  getTargetPose(body_msgs_);
+  // yaw_des_= calculateAngle(body_msgs_, laser_msgs_);
+  // yaw_des_= clip(yaw_des_,-1.5,1.5);
   // angle_pub_.publish(msg);
   // lastUpdateTime_ = ros::Time::now();
 }
@@ -68,25 +69,33 @@ void RosAngleCalculator::feedbackCallback(const rm_msgs::GimbalAngle& message)
 void RosAngleCalculator::timer1Callback(const ros::TimerEvent& e)
 {
   static uint8_t nav_count = 0;
+  double yaw_des,pitch_des;
+  static double yaw_ramp=0;
   rm_msgs::GimbalCtrl gimbal_msg;
+
+  yaw_des = calculateAngle(target_pose_, laser_msgs_);
+  yaw_des = clip(yaw_des,-1.5,1.5);
+  pitch_des = calculateAngle_TargetPitch(target_pose_);
+  
   if((ros::Time::now()-lastUpdateTime_).toSec() > 5.0)
   {
-      yaw_des_ = 0;
+      yaw_des = 0;
+      pitch_des = -0.3;
   }
 
-  if(fabs(yaw_des_-yaw_ramp_)>0.05) {
-    yaw_ramp_ += 0.05*sgn(yaw_des_-yaw_ramp_);
+  if(fabs(yaw_des-yaw_ramp)>0.05) {
+    yaw_ramp += 0.05*sgn(yaw_des-yaw_ramp);
   }
   else{
-    yaw_ramp_ = yaw_des_;
+    yaw_ramp = yaw_des;
   }
   gimbal_msg.ctrl_mode = 7;
-  gimbal_msg.pit_ref = -0.3;
-  gimbal_msg.yaw_ref = yaw_ramp_;
+  gimbal_msg.pit_ref = pitch_des;
+  gimbal_msg.yaw_ref = yaw_ramp;
   gimbal_msg.visual_valid = 0;
   angle_pub_.publish(gimbal_msg); 
 
-if(target_pose_.header.frame_id.size()>0 && nav_count > 20)
+if(target_pose_.header.frame_id.size()>0 && nav_count > 10)
 {
   setNavGoal(target_pose_);
   nav_count = 0;
@@ -114,19 +123,16 @@ bool RosAngleCalculator::serviceCallback(std_srvs::Trigger::Request& request,
   return true;
 }
 
-double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray& body_message, const sensor_msgs::LaserScan& laser_message) 
+bool RosAngleCalculator::getTargetPose(const visualization_msgs::MarkerArray& body_message)
 {
-  double angle,path_angle;
-  static uint8_t pre_id = 0;
-  static double target_angle = 0;
-  // static uint8_t count = 0;
   bool target_flag = false;
-
+  static uint8_t pre_id = 0;
   for(auto iter:body_message.markers){
     if(iter.id/100 == pre_id && iter.id%100 == 0){
       target_pose_.header = iter.header;
       target_pose_.pose  = iter.pose;
       target_flag = true;
+      lastUpdateTime_ = ros::Time::now(); 
       break;
     }
   }
@@ -139,26 +145,19 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
         target_pose_.pose  = iter.pose;
         pre_id = iter.id/100;
         target_flag = true;
+        lastUpdateTime_ = ros::Time::now(); 
         break;
       }
     }
   }
-  
-  if(target_flag)
-  {
-    // ROS_INFO_STREAM("Target position is:"<<target_pose_.pose.position);
-    target_angle = calculateAngle_Target(target_pose_);
-    lastUpdateTime_ = ros::Time::now();
-    // setNavGoal(target_pose_);
-    // count++;
-    // if(count>5)
-    // {
-      
-    //   count=0;
-    // }
-    
-  }
 
+  return target_flag;
+}
+
+double RosAngleCalculator::calculateAngle(const geometry_msgs::PoseStamped& target_pose, const sensor_msgs::LaserScan& laser_message) 
+{
+  double angle,target_angle,path_angle;
+  target_angle = calculateAngle_Target(target_pose);
   path_angle = calculateAngle_Path(laser_message);
 
   //Fixed Policy
@@ -226,6 +225,33 @@ double RosAngleCalculator::calculateAngle_Target(const geometry_msgs::PoseStampe
   else target_angle = 0;
 
   return target_angle;
+}
+
+double RosAngleCalculator::calculateAngle_TargetPitch(const geometry_msgs::PoseStamped target_message)
+{
+  geometry_msgs::PoseStamped pose_out;geometry_msgs::TransformStamped transformStamped;
+  double x,y,z,dis,target_pitch;
+  try
+  {
+    transformStamped = tfBuffer_.lookupTransform("gimbal_mount", target_message.header.frame_id, target_message.header.stamp, ros::Duration(0.1));
+    tf2::doTransform(target_message,pose_out,transformStamped);
+  }
+  catch (tf2::TransformException &ex) 
+  {
+    ROS_WARN("Failure %s\n", ex.what()); //Print exception which was caught
+  }
+
+  x = pose_out.pose.position.x;
+  y = pose_out.pose.position.y;
+  z = pose_out.pose.position.z;
+  dis = sqrt(x*x+y*y);
+  if(dis > 0.5) 
+  {
+    target_pitch = atan2(-z,dis);
+  }
+  else target_pitch = -0.3;
+
+  return target_pitch;
 }
 
 double RosAngleCalculator::calculateAngle_Path(const sensor_msgs::LaserScan& laser_message)
