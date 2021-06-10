@@ -55,8 +55,10 @@ class RosAngleCalculator
   void feedbackCallback(const rm_msgs::GimbalAngle& message);
   void timer1Callback(const ros::TimerEvent& e);
 
-  double calculateAngle(const visualization_msgs::MarkerArray& body_message, const sensor_msgs::LaserScan& laser_message);
+  bool getTargetPose(const visualization_msgs::MarkerArray& body_message);
+  double calculateAngle(const geometry_msgs::PoseStamped& target_pose, const sensor_msgs::LaserScan& laser_message);
   double calculateAngle_Target(const geometry_msgs::PoseStamped);
+  double calculateAngle_TargetPitch(const geometry_msgs::PoseStamped);
   double calculateAngle_Path(const sensor_msgs::LaserScan& laser_message);
 
   double calculateScore(const nav_msgs::Path& nav_message, const sensor_msgs::LaserScan& laser_message);
@@ -103,8 +105,8 @@ class RosAngleCalculator
   sensor_msgs::LaserScan laser_msgs_;
   visualization_msgs::MarkerArray body_msgs_;
   geometry_msgs::PoseStamped target_pose_;
-  double yaw_des_;
-  double yaw_ramp_;
+  // double yaw_des_;
+  // double yaw_ramp_;
   double yaw_feedback_;
   ros::Time lastUpdateTime_;
 };
