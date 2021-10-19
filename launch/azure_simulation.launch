@@ -1,6 +1,6 @@
 <launch>
-   <arg name="if_simulation"          default="true"/>
-   <arg name="if_navigation"          default="true"/>
+   <arg name="if_simulation"          default="false"/>
+   <arg name="if_navigation"          default="false"/>
   <!-- Default parameters. Note the usage of 'value', to avoid they can be wrongly changed. -->
   <group if="$(arg if_simulation)">
     <include file="$(find azure_sensor_angle)/launch/azure_rectify.launch">
