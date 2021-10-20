@@ -129,7 +129,7 @@ double RosAngleCalculator::calculateAngle(const visualization_msgs::MarkerArray&
   {
     //ROS_INFO_STREAM("Target position is:"<<target_pose_.pose.position);
     target_angle = calculateAngle_Target(target_pose_);
-    setNavGoal(target_pose_);
+    //setNavGoal(target_pose_);
     // count++;
     // if(count>5)
     // {

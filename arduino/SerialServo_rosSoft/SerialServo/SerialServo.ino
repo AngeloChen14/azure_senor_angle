@@ -1,4 +1,5 @@
 
+//For future reference, 这个代码是完整可以用的，由于ros本身的代码限制,altsoftserail在ros_lib/ArduinoHardware.h中调用
 #define ROS_SOFTSERIAL 1
 
 #include <ros.h>
@@ -347,6 +348,7 @@ int LobotSerialServoReadVin(HardwareSerial &SerialX, uint8_t id)
 #define PWM_MIDPOS 500  //pwm length for mid pos
 #define CONTROL_INTERVAL 100    //Loop interval(ms),for servo control
 #define FEEDBACK_INTERVAL 20    //Loop interval(ms),for feedback
+#define LOST_INTERVAL 5000    //Lost cmd waiting interval(ms),for reset MIDPOS
 #define M_PI 3.14159265358979323846
 #define ID   1
 
@@ -362,6 +364,7 @@ ros::Publisher pub("/arduino/feedback", &fb_msg);
 ros::Subscriber<std_msgs::Float64> sub("/camera_angle", sub_cb);
 unsigned long control_timer;
 unsigned long feedback_timer;
+unsigned long last_update_time;
 
 void setup() {
   // put your setup code here, to run once:
@@ -387,6 +390,9 @@ void loop() {
       pub.publish(&fb_msg);
     }    
   }
+  if(millis()- last_update_time> LOST_INTERVAL){
+    LobotSerialServoMove(Serial, ID, PWM_MIDPOS, 0);
+  }
   nh.spinOnce();
 }
 
@@ -401,5 +407,6 @@ void sub_cb( const std_msgs::Float64& cmd_msg){
 //    target_PWM = constrain(PWM_MIDPOS + round(cmd_msg.data/90.0*PWM_RANGE), PWM_MIDPOS-PWM_RANGE, PWM_MIDPOS+PWM_RANGE);
     LobotSerialServoMove(Serial, ID, target_PWM, 0);
   }
+  last_update_time = millis();
 
 }
